@@ -125,3 +125,6 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGIN_REDIRECT_URL = '/game/'  # redirect ไปหน้าเกมหลัง login สำเร็จ
+LOGIN_URL = '/login/'  # URL สำหรับ @login_required

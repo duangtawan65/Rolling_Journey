@@ -1,0 +1,55 @@
+<!-- templates/roll/login.html -->
+{% extends "base.html" %}
+
+{% block title %}เข้าสู่ระบบ{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+  <form class="bg-white w-full max-w-sm p-6 rounded-xl shadow-lg" method="post" action="{% url 'login' %}">
+    {% csrf_token %}
+    
+    <h1 class="text-xl font-semibold mb-4">เข้าสู่ระบบ</h1>
+
+    {% if error %}
+      <div class="bg-red-50 text-red-600 border border-red-200 rounded-lg p-3 mb-4 text-sm">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <input type="hidden" name="next" value="{{ next|default:'' }}"/>
+
+    <label for="username" class="block text-sm font-medium text-gray-700 mb-2">ชื่อผู้ใช้</label>
+    <input 
+      id="username" 
+      name="username" 
+      type="text" 
+      autocomplete="username" 
+      required 
+      autofocus
+      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+    />
+
+    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่าน</label>
+    <input 
+      id="password" 
+      name="password" 
+      type="password" 
+      autocomplete="current-password" 
+      required
+      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+    />
+
+    <button 
+      type="submit"
+      class="w-full bg-gray-900 text-white py-2.5 rounded-lg hover:bg-gray-700 transition-colors font-medium"
+    >
+      เข้าสู่ระบบ
+    </button>
+
+    <div class="mt-4 text-sm text-gray-600 text-center">
+      ยังไม่มีบัญชี? <a href="{% url 'register' %}" class="text-blue-600 hover:underline">สมัครสมาชิก</a><br>
+      หรือ <a href="/" class="text-blue-600 hover:underline">กลับหน้าแรก</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

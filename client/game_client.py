@@ -3,6 +3,10 @@ from tkinter import ttk, scrolledtext, messagebox
 import threading
 from groq import Groq
 import random
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class SimpleAIChat:
@@ -13,7 +17,13 @@ class SimpleAIChat:
         
         # Initialize AI
         try:
-            api_key = ""
+            # โหลด environment variables
+            load_dotenv()
+            api_key = os.getenv('api_key')
+            
+            if not api_key:
+                raise Exception("API key not found in .env file")
+                
             self.client = Groq(api_key=api_key)
             self.model = "openai/gpt-oss-20b"
         except Exception as e:
