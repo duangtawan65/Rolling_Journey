@@ -55,7 +55,7 @@ class Player(models.Model):
         getattr(settings, "AUTH_USER_MODEL", "auth.User"),
         on_delete=models.SET_NULL, null=True, blank=True
     )
-    anon_id  = models.CharField(max_length=64, blank=True, unique=True)
+    anon_id  = models.CharField(max_length=64, unique=True, blank=False)
 
     hp = models.IntegerField(default=30)
     mp = models.IntegerField(default=10)

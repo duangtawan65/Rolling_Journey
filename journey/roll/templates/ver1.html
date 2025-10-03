@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% block title %}เกม{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 p-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="bg-white rounded-xl shadow p-6">
+      <!-- Header -->
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <h1 class="text-2xl font-bold">สวัสดี, {{ user.username }} ✨</h1>
+        <form method="post" action="{% url 'logout' %}" class="flex gap-2">
+          {% csrf_token %}
+          <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+            ออกจากระบบ
+          </button>
+        </form>
+      </div>
+
+      <!-- Status bar -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
+        <div class="border rounded-lg p-3"><div class="text-xs text-gray-500">Session</div><div id="sid" class="font-semibold">-</div></div>
+        <div class="border rounded-lg p-3"><div class="text-xs text-gray-500">สถานะ</div><div id="status" class="font-semibold">-</div></div>
+        <div class="border rounded-lg p-3"><div class="text-xs text-gray-500">ด่าน</div><div id="stage" class="font-semibold">-</div></div>
+        <div class="border rounded-lg p-3"><div class="text-xs text-gray-500">เทิร์น</div><div id="turn" class="font-semibold">-</div></div>
+        <div class="border rounded-lg p-3"><div class="text-xs text-gray-500">HP</div><div id="hp" class="font-semibold">-</div></div>
+        <div class="border rounded-lg p-3"><div class="text-xs text-gray-500">MP</div><div id="mp" class="font-semibold">-</div></div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <div class="border rounded-lg p-3"><div class="text-xs text-gray-500">Heal Potion</div><div id="potH" class="font-semibold">-</div></div>
+        <div class="border rounded-lg p-3"><div class="text-xs text-gray-500">Boost Charm</div><div id="potB" class="font-semibold">-</div></div>
+        <div class="border rounded-lg p-3"><div class="text-xs text-gray-500">ผลทอยล่าสุด</div><div id="lastRoll" class="font-semibold text-sm text-gray-700">-</div></div>
+        <div class="border rounded-lg p-3"><div class="text-xs text-gray-500">ระบบ</div><div id="sysmsg" class="font-semibold text-sm text-gray-700">พร้อม</div></div>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        <button id="btnStart" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700" type="button">เริ่ม/ต่อเกม</button>
+        <button id="btnRefresh" class="bg-gray-200 text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-300" type="button">รีเฟรช</button>
+        <button id="btnQuit" class="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600" type="button">ยอมแพ้</button>
+      </div>
+
+      <!-- Chat window -->
+      <div id="chat" class="h-[420px] overflow-y-auto border rounded-xl p-4 bg-gray-50 mb-4">
+        <!-- บับเบิลแชทจะถูกเติมที่นี่ -->
+      </div>
+
+      <!-- Composer -->
+      <div class="space-y-2">
+        <textarea id="action_text" class="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  rows="3" placeholder="พิมพ์คำสั่ง เช่น: โจมตี, ซ่อนตัว, ทำพิธี ... (Enter เพื่อส่ง, Shift+Enter ลงบรรทัด)"></textarea>
+        <div class="flex flex-wrap items-center gap-4">
+          <label class="text-sm">ใช้ MP กับการทอย:
+            <input id="use_mp" type="number" min="0" value="0" class="w-20 border rounded px-2 py-1 ml-1">
+          </label>
+          <label class="text-sm"><input id="use_heal" type="checkbox" class="mr-1"> ใช้ Heal</label>
+          <label class="text-sm"><input id="use_boost" type="checkbox" class="mr-1"> ใช้ Boost</label>
+          <button id="btnAct" class="ml-auto bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700" type="button">ส่งคำสั่ง</button>
+        </div>
+        <p class="text-xs text-gray-500">ทิป: เทิร์น 3/6/9 จะใช้ MP เพื่อบัฟทอยได้ หาก MP พอ</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- API endpoints ----------
+  const API = {
+    start: "/api/session/start",
+    state: sid => `/api/session/${sid}/state`,
+    act:   sid => `/api/session/${sid}/act`,
+    end:   sid => `/api/session/${sid}/end`,
+    intro: sid => `/api/session/${sid}/intro`,   // << อินโทรเทิร์น (ไม่ทอย)
+  };
+
+  // ---------- Helpers ----------
+  function anonId() {
+    let id = localStorage.getItem("anon_id");
+    if (!id) {
+      id = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+      localStorage.setItem("anon_id", id);
+    }
+    return id;
+  }
+  async function apiPost(url, body) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-ANON-ID": anonId()},
+      body: body ? JSON.stringify(body) : "{}",
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+  async function apiGet(url) {
+    const res = await fetch(url, { headers: {"X-ANON-ID": anonId()} });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
+  // ---------- State ----------
+  let SID = null;
+  let hasLoadedIntro = false; // เพิ่มตัวแปรนี้เพื่อเช็คว่าโหลดอินโทรแล้วหรือยัง
+  const el = (id) => document.getElementById(id);
+  function setSys(msg) { el("sysmsg").textContent = msg; }
+
+  function renderState(data) {
+    SID = data.session_id || SID;
+    el("sid").textContent = SID || "-";
+    el("status").textContent = data.status;
+    el("stage").textContent = data.stage_index;
+
+    // turn_index ใหม่; ถ้า backend ยังไม่อัปเดต ให้ลองใช้ data.turn (กรณีเป็นตัวเลข)
+    const turnNum = (data.turn_index != null)
+      ? data.turn_index
+      : (typeof data.turn === "number" ? data.turn : "-");
+    el("turn").textContent = turnNum;
+
+    el("hp").textContent  = data.player.hp;
+    el("mp").textContent  = data.player.mp;
+    el("potH").textContent= data.player.pot_heal;
+    el("potB").textContent= data.player.pot_boost;
+
+    const t = data.turn && data.turn.roll ? data.turn.roll : null;
+    el("lastRoll").textContent = t ? `d20=${t.dice_roll} total=${t.total_roll} (${t.tier})` : "-";
+
+    const active = data.status === "ACTIVE";
+    el("btnAct").disabled = !active;
+    el("action_text").disabled = !active;
+  }
+
+  function appendBubble(role, html) {
+    const wrap = document.createElement("div");
+    wrap.className = "mb-3 flex " + (role === "user" ? "justify-end" : "justify-start");
+    const bubble = document.createElement("div");
+    bubble.className = (role === "user"
+      ? "bg-emerald-600 text-white"
+      : "bg-white border") + " max-w-[80%] rounded-2xl px-4 py-3 shadow-sm";
+    bubble.innerHTML = html;
+    wrap.appendChild(bubble);
+    el("chat").appendChild(wrap);
+    el("chat").scrollTop = el("chat").scrollHeight;
+  }
+
+  function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+  function formatNarration(res) {
+    const r = res.turn || {};
+    const roll = r.roll || {};
+    const lines = [];
+    if (r.narration) lines.push(`<div class="font-medium whitespace-pre-wrap">${escapeHtml(r.narration)}</div>`);
+    if (roll.dice_roll != null) {
+      lines.push(`<div class="text-xs text-gray-600 mt-1">🎲 d20=${roll.dice_roll} → total=${roll.total_roll} <span class="font-semibold">(${roll.tier})</span>${roll.mp_spent>0?`, ใช้ MP=${roll.mp_spent}`:""}${roll.boost_applied?`, Boost +${roll.boost_bonus}`:""}</div>`);
+    }
+    if (r.cleared_stage) lines.push(`<div class="mt-1 text-xs text-emerald-700">✅ ผ่านด่านนี้แล้ว!</div>`);
+    if (r.cleared_game)  lines.push(`<div class="mt-1 text-xs text-emerald-700 font-semibold">🏁 เคลียร์เกมแล้ว!</div>`);
+    if (r.dead)          lines.push(`<div class="mt-1 text-xs text-red-700 font-semibold">☠️ คุณตาย</div>`);
+    // ถ้ามี narration จาก act → สร้างปุ่มเลือก
+    if (r.narration) setTimeout(()=>renderChoiceButtons(r.narration), 0);
+    return lines.join("");
+  }
+
+  function renderChoiceButtons(narr){
+    // ล้างปุ่มชุดเก่าก่อน
+    document.querySelectorAll(".choice-row").forEach(n => n.remove());
+    // ดึงบรรทัด * A./B./C.
+    const lines = (narr||"").split("\n");
+    const choices = lines.filter(s => /^\*\s+[ABC]\.\s+/i.test(s))
+                         .map(s => s.replace(/^\*\s+[ABC]\.\s+/i, "").trim());
+    if(choices.length === 0) return;
+
+    const row = document.createElement("div");
+    row.className = "choice-row flex flex-wrap gap-2 mb-2 justify-start";
+    ["A","B","C"].forEach((label, idx) => {
+      if(!choices[idx]) return;
+      const btn = document.createElement("button");
+      btn.className = "px-3 py-1 rounded-lg border bg-white hover:bg-gray-100 text-sm";
+      btn.textContent = `${label}: ${choices[idx]}`;
+      btn.addEventListener("click", () => {
+        el("action_text").value = choices[idx];
+        doAct();
+      });
+      row.appendChild(btn);
+    });
+    el("chat").appendChild(row);
+    el("chat").scrollTop = el("chat").scrollHeight;
+  }
+
+  // ---------- Intro turn (ไม่ทอย) ----------
+  async function loadIntro(){
+    if(!SID || hasLoadedIntro) return; // เช็คว่าโหลดแล้วหรือยัง
+    try{
+      const res = await apiGet(API.intro(SID));
+      // บาง backend ยังไม่มี intro: ข้ามเงียบๆ
+      const narration = res?.turn_intro?.narration;
+      if(narration){
+        appendBubble("bot", `<div class="whitespace-pre-wrap">${escapeHtml(narration)}</div>`);
+        renderChoiceButtons(narration);
+        hasLoadedIntro = true; // ตั้งค่าว่าโหลดแล้ว
+      }
+    }catch(_e){ /* เงียบไว้ */ }
+  }
+
+  // ---------- Actions ----------
+  async function startSession() {
+    try {
+      // รีเซ็ตสถานะอินโทร
+      hasLoadedIntro = false;
+      
+      const data = await apiPost(API.start);
+      renderState(data);
+      appendBubble("system", `<div class="text-sm text-gray-600">เริ่ม/ต่อเกมเรียบร้อย</div>`);
+      await loadIntro(); // แสดงอินโทรเฉพาะครั้งแรก
+      setSys("พร้อม");
+    } catch (e) {
+      setSys("เริ่มเกมล้มเหลว");
+      alert("Start failed: " + e.message);
+    }
+  }
+
+  async function refreshState() {
+    if (!SID) return alert("ยังไม่มี Session");
+    try {
+      const data = await apiGet(API.state(SID));
+      renderState(data);
+      setSys("อัปเดตแล้ว");
+    } catch (e) {
+      setSys("รีเฟรชล้มเหลว");
+      alert("State failed: " + e.message);
+    }
+  }
+
+  async function quitSession() {
+    if (!SID) return alert("ยังไม่มี Session");
+    try {
+      await apiPost(API.end(SID));
+      appendBubble("system", `<div class="text-sm text-gray-600">จบ Session แล้ว</div>`);
+      // รีเซ็ตสถานะอินโทร
+      hasLoadedIntro = false;
+      await refreshState();
+    } catch (e) {
+      alert("End failed: " + e.message);
+    }
+  }
+
+  async function doAct() {
+    if (!SID) return alert("ยังไม่มี Session—กดเริ่ม/ต่อเกมก่อน");
+    const text = el("action_text").value.trim();
+    if (!text) return;
+    const body = {
+      action_text: text,
+      use_mp: parseInt(el("use_mp").value || "0", 10),
+      use_heal: el("use_heal").checked,
+      use_boost: el("use_boost").checked,
+    };
+
+    try {
+      appendBubble("user", `<div>${escapeHtml(text)}</div>`);
+
+      const res = await apiPost(API.act(SID), body);
+      renderState(res);
+      appendBubble("bot", formatNarration(res));
+
+      // เคลียร์คอนโทรล
+      el("action_text").value = "";
+      el("use_mp").value = 0;
+      el("use_heal").checked = false;
+      el("use_boost").checked = false;
+
+      // ลบการโหลดอินโทรออกจากที่นี่ เพราะจะทำให้ซ้อนกัน
+      
+    } catch (e) {
+      alert("Act failed: " + e.message);
+    }
+  }
+
+  // ---------- Wire up ----------
+  document.getElementById("btnStart").addEventListener("click", startSession);
+  document.getElementById("btnRefresh").addEventListener("click", refreshState);
+  document.getElementById("btnQuit").addEventListener("click", quitSession);
+  document.getElementById("btnAct").addEventListener("click", doAct);
+  el("action_text").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" && !ev.shiftKey) {
+      ev.preventDefault();
+      doAct();
+    }
+  });
+</script>
+{% endblock %}

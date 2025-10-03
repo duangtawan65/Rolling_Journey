@@ -1,0 +1,427 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body { 
+    font-family: 'Prompt', sans-serif;
+    color: #111827; 
+    overflow: hidden; 
+  }
+
+  button { 
+    cursor: pointer; 
+    border: none;}
+
+  /* --- Background Image Styles --- */
+  #background-image-container { 
+    position: fixed; 
+    top: 0; left: 0; 
+    width: 100%; height: 100%; 
+    background-size: cover; 
+    background-position: center center; 
+    background-repeat: no-repeat; 
+    z-index: -1; 
+    transition: background-image 0.7s ease-in-out; 
+    filter: brightness(0.6); 
+  }
+
+  /* --- Modal Styles --- */
+  .modal-overlay { 
+    position: fixed; 
+    inset: 0; 
+    background-color: rgba(0, 0, 0, 0.8); 
+    display: none; align-items: center; 
+    justify-content: center; z-index: 50; 
+    padding: 1rem; transition: opacity 0.2s ease-in-out; 
+  }
+
+  .modal-box { 
+    /* background-color: #1f2937;  */
+    color: #d1d5db; 
+    /* border: 1px solid #4b5563;  */
+    border-radius: 1rem; 
+    /* box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);  */
+    padding: 2rem; 
+    max-width: 32rem; 
+    width: 100%; 
+    /* position: absolute;  */
+    background-color: rgba(23, 23, 23, 0.7); 
+    border: 1px solid rgba(255, 255, 255, 0.2); 
+    border-radius: 0.5rem; 
+    padding: 1rem; 
+    backdrop-filter: blur(5px); 
+  }
+  
+  .modal-title {
+    font-size: 24px; 
+    font-weight: 700; 
+    color: #ef4444; 
+    margin-bottom: 0.5rem; 
+    text-align: center; 
+  }
+
+  .modal-subtitle { 
+    font-size: 13px; 
+    color: #9ca3af; 
+    margin-bottom: 1rem; 
+    text-align: center; 
+  }
+
+  .modal-hr { 
+    border-color: #4b5563; 
+    margin-bottom: 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .modal-prompt { 
+    font-size: 16px; 
+    color: #f9fafb; 
+    margin-bottom: 1.5rem; 
+    text-align: center; 
+  }
+  .modal-button { 
+    display: block; 
+    margin: 0 auto;
+    width: 100%; 
+    background-color: #b91c1c; 
+    color: white; 
+    padding: 0.7rem 1rem; 
+    border-radius: 50px; 
+    font-size: 1.125rem; 
+    font-weight: 500; 
+    transition: all 0.2s; 
+  }
+
+  .modal-button:hover { background-color: #991b1b; transform: scale(1.05); }
+
+  /* --- New Main Game Layout --- */
+  .page-wrapper { position: relative; width: 100vw; height: 100vh; color: white; }
+  .top-bar { 
+    position: absolute; 
+    top: 0; left: 0; 
+    width: 100%; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 1rem 1.5rem; 
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0)); 
+  }
+
+  .top-bar .username { 
+    font-size: 14px; 
+    font-weight: 500; 
+    /* text-shadow: 1px 1px 3px rgba(0,0,0,0.7);  */
+    background-color: rgba(43, 43, 43, 0.9); 
+    padding: 8px 15px; 
+    border-radius: 10px; 
+  }
+
+  .hud { 
+    position: absolute; 
+    background-color: rgba(0, 0, 0, 0.6); 
+    border: 1px solid rgba(255, 255, 255, 0.2); 
+    border-radius: 0.5rem; 
+    padding: 1rem; 
+    backdrop-filter: blur(5px); 
+  }
+
+  .hud-under {
+    position: absolute;
+    top: 20rem; 
+    left: 1.5rem; 
+    margin-top: 20px;
+  }
+
+
+  .hud-top-left { 
+    top: 4rem; 
+    left: 1.5rem; 
+    display: flex; 
+    flex-direction: 
+    column; gap: 1rem; 
+  }
+
+  .hud-top-left-under{ 
+      top: 12rem; 
+      left: 1.5rem; 
+      display: table-column; 
+      flex-direction: column; gap: 1rem; 
+    }
+
+  .hud-top-right { 
+    top: 4rem; 
+    right: 1.5rem; 
+    width: 180px; 
+  }
+  
+  /* --- HP/MP Bar Styles --- */
+  .resource-bar-item { display: flex; flex-direction: column; gap: 4px; }
+  .resource-bar-container { 
+    width: 200px; 
+    height: 20px; 
+    background-color: #374151; 
+    border-radius: 10px; 
+    border: 1px solid #4b5563; 
+    position: relative; 
+    overflow: hidden; 
+  }
+  .resource-bar-fill { height: 100%; width: 100%; border-radius: 8px; transition: width 0.5s ease-out, background-color 0.5s ease; }
+  .hp-bar-fill { background: linear-gradient(to right, #962f2f, #cc6161); }
+  .mp-bar-fill { background: linear-gradient(to right, #223c72, #60a5fa); }
+  .hp-bar-fill.low-health { background: linear-gradient(to right, #dc2626, #f87171); }
+  .resource-bar-text { 
+    position: absolute; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%); 
+    color: white; 
+    font-size: 10px; 
+    font-weight: bold; 
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7); 
+    white-space: nowrap; 
+    font-weight: 300; 
+  }
+  .resource-label { 
+    font-size: 10px; 
+    font-weight: 500; 
+  }
+
+
+.hud-inventory {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 1rem; 
+    flex-direction: column; 
+}
+
+.inventory-item {
+    display: flex;
+    flex-direction: column; 
+    align-items: center;   
+    gap: 0.35rem;          
+    width: 64px;            
+}
+
+.item-icon-container {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    /* background-color: rgba(0, 0, 0, 0.4);  */
+    /* border: 2px solid #60a5fa;  */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* overflow: hidden;  */
+    /* box-shadow: 0 0 8px rgba(96, 165, 250, 0.5); */
+}
+
+/* รูปไอคอน */
+.item-icon {
+    width: 100%;  
+    height: 100%;
+    object-fit: contain; 
+    filter: brightness(0.9);
+    border-radius: 50%;
+}
+
+/*ป้ายบอกจำนวน*/
+.item-count {
+    position: absolute;
+    top: -8px;    
+    right: -8px; 
+    background-color: #b53344; 
+    color: white;
+    font-size: 10px; 
+    font-weight: bold;
+    width: 20px;  
+    height: 20px; 
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff; /* ขอบสีขาวเพื่อให้ตัดกับพื้นหลัง */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* เพิ่มเงาให้ดูมีมิติ */
+    z-index: 10; /* ให้ลอยอยู่เหนือองค์ประกอบอื่น */
+}
+
+.item-label {
+    color: #d1d5db; 
+    font-size: 10px; 
+    font-weight: 400;
+    text-align: center;
+    white-space: nowrap; 
+}
+  /* --- Center Controls --- */
+  .center-controls { 
+    position: absolute; 
+    top: 20%; 
+    left: 50%; 
+    transform: translate(-50%, -50%); 
+    display: column; 
+    gap: 10px; 
+    text-align: center;
+  }
+  .button { 
+    padding: 5px 5px; 
+    border-radius: 0.5rem; 
+    color: white; 
+    font-weight: 500; 
+    transition: background-color 0.2s; 
+    background-color: rgba(0,0,0,0.6); 
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px); 
+  }
+
+  .button:hover { 
+    background-color: rgba(0,0,0,0.8); 
+  }
+
+  .button-quit {
+    display: block;          
+    margin: 1rem auto 0 auto; 
+    text-align: center; 
+    background-color: #cccccc; 
+    padding: 5px 10px; 
+    border-radius: 0.5rem; 
+    color: white; 
+    font-weight: 400; 
+    font-size: 12px;
+  }
+
+
+  .button-quit:hover { 
+    background-color: #9a2f2f; 
+  }
+
+  .button-logout { 
+    display: block;          
+    /* margin: 1rem auto 0 auto;  */
+    text-align: center; 
+    background-color: rgba(43, 43, 43, 0.9); 
+    padding: 5px 15px; 
+    border-radius: 9999px; 
+    color: white; 
+    font-weight: 400; 
+    font-size: 12px;
+  }
+
+  .button-logout:hover { 
+    background-color: #831313; 
+  }
+
+  /* --- Character Status in HUD --- */
+  .char-status-hud { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 0.5rem; 
+  }
+  .char-status-item { display: flex; justify-content: space-between; align-items: center; }
+  .char-status-item .label {
+    font-size: 12px;
+    font-weight: 600; 
+    color: #d1d5db; 
+  }
+  .char-status-item .value { 
+    color: #ffffff; 
+    font-weight: normal; 
+    font-size: 12px;}
+
+  /* --- Bottom Section (Narration & Choices) --- */
+  .bottom-section { position: absolute; bottom: 0; left: 0; width: 100%; padding: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; background: linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0)); }
+  #narration-box { width: 100%; max-width: 48rem; height: auto; min-height: 120px; max-height: 200px; background-color: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 0.75rem; padding: 1rem; overflow-y: auto; }
+  
+  #choices-box { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 1rem; 
+    align-items: center; 
+    justify-content: center; 
+  }
+
+  .choice-button {
+    background-color: rgba(25, 33, 46, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(5px);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 999px;
+    display: inline-block;
+    max-width: 250px;
+    /* white-space: nowrap; */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+  }
+
+  .choice-button:hover { 
+    background-color: rgba(255,255,255,0.2); 
+  }
+  .choice-button:disabled { 
+    background-color: rgba(0,0,0,0.4); 
+    opacity: 0.6; 
+    cursor: not-allowed; 
+  }
+  .choice-button b { 
+    font-weight: 700; 
+  }
+
+  /* --- Mission Box Styles --- */
+  /* .mission-box, .mission-cleared-box { border-radius: 0.5rem; padding: 0.75rem 1rem; margin: 1rem 0; font-weight: 600; }
+  .mission-box { background: #fffbeb; border: 1px solid #facc15; border-left: 5px solid #f59e0b; color: #78350f; }
+  .mission-cleared-box { background: #ecfdf5; border: 1px solid #6ee7b7; border-left: 5px solid #10b981; color: #065f46; animation: fadeIn 0.5s ease-in-out; } */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+  #turn_button {
+    display: none;
+
+
+}
+
+/* กล่องแสดงสถานะภารกิจ */
+.mission-update-box {
+  background: #fefce8; /* สีพื้นหลังที่นุ่มนวล */
+  border-radius: 1rem; /* มุมโค้ง */
+  padding: 1rem; /* ระยะห่างภายในกล่อง */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* เงาเบา */
+  font-size: 1rem; /* ขนาดฟอนต์ */
+  color: #6b7280; /* สีฟอนต์พื้นฐาน */
+}
+
+/* ข้อความภารกิจ */
+.mission-box {
+    padding: 10px 10px; 
+    border-radius: 0.5rem; 
+    color: white; 
+    font-weight: 500; 
+    transition: background-color 0.2s; 
+    background-color: rgba(192, 164, 40, 0.6); 
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px); 
+    margin-top: 20px;
+}
+
+/* ข้อความภารกิจที่เคลียร์แล้ว */
+.mission-cleared-box {
+  background-color: #67ad36; 
+  /* border-left: 5px solid #10b981;  */
+  padding: 0.75rem 1rem; 
+  color: #ffffff; 
+  font-weight: 500; 
+  font-size: 1rem; 
+  margin-top: 1rem;
+  margin-bottom: 1rem; 
+  border-radius: 0.5rem; 
+  animation: fadeIn 0.5s ease-in-out; 
+}
+
+/* Animation สำหรับภารกิจที่เคลียร์แล้ว */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px); /* เลื่อนจากด้านบน */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0); /* เลื่อนมาที่เดิม */
+  }
+}

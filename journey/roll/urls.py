@@ -14,3 +14,4 @@ urlpatterns = [
     path('game/', views.game_view, name='game'),
     path("api/session/<uuid:session_id>/intro", views.intro, name="intro"),
 ]
+
