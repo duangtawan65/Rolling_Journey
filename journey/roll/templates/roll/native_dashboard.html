@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>The Wailing of Wiang Lom</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#0f172a; --muted:#a3b3ce; --accent:#93c5fd; --line:#1f2937;
+    }
+    *{box-sizing:border-box}
+    body{margin:24px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:#e6edf3}
+    h1{margin:0 0 16px}
+    .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .card h2{font-size:16px;margin:0 0 10px;color:var(--accent)}
+    .kpi{font-size:42px;font-weight:700}
+    .sub{color:var(--muted);font-size:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+    .pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#0b1327}
+    canvas{width:100% !important;height:320px !important}
+    .heatgrid{display:grid;grid-template-columns:80px repeat(3,1fr);gap:6px}
+    .heatgrid .cell{padding:10px;border-radius:10px;text-align:center;background:#0b1327;border:1px solid var(--line)}
+    .heatgrid .head{background:transparent;border:none;color:var(--muted)}
+    ul{margin:0;padding-left:18px}
+  </style>
+</head>
+<body>
+  <h1>>The Wailing of Wiang Lom</h1>
+
+  <!-- ตัวชี้วัดหลัก (KPI) -->
+  <div class="grid" style="margin-bottom:16px">
+    <div class="card"><h2>ผู้เล่นที่เริ่มเล่น (Entrants)</h2><div class="kpi">{{ total_entrants }}</div></div>
+    <div class="card"><h2>ผู้เล่นที่จบเกม (Finishers)</h2><div class="kpi">{{ finishers }}</div></div>
+    <div class="card"><h2>อัตราการจบเกม</h2><div class="kpi">{{ completion_rate }}%</div></div>
+    <div class="card"><h2>เวลาเฉลี่ยก่อนตาย</h2><div class="kpi">{{ avg_time_to_death }}s</div><div class="sub">วัดจากเริ่มเกม → เวลาตาย</div></div>
+  </div>
+
+  <!-- เทรนด์รายวัน -->
+  <div class="card">
+    <h2>จำนวนผู้เล่นเริ่มเล่น vs จบเกม (รายวัน)</h2>
+    <canvas id="dailyLine"></canvas>
+  </div>
+
+  <div class="grid" style="margin-top:16px">
+    <div class="card">
+      <h2>จำนวนเซสชันที่กำลังเล่นอยู่ (ต่อฉาก)</h2>
+      <canvas id="eventsPerStage"></canvas>
+    </div>
+    <div class="card">
+      <h2>เวลาเฉลี่ยที่ใช้ต่อฉาก (วินาที)</h2>
+      <canvas id="timePerStage"></canvas>
+    </div>
+  </div>
+
+  <!-- Heatmap & ทางเลือกยอดนิยม -->
+  <div class="grid" style="margin-top:16px">
+    <div class="card">
+      <h2>ฮีตแมพการตัดสินใจ (A/B/C) รายฉาก</h2>
+      <div class="heatgrid" id="heatTable">
+        <div class="head"></div>
+        {% for ch in choices %}<div class="head">ตัวเลือก {{ ch }}</div>{% endfor %}
+        {% for s in heatmap.keys %}
+          <div class="cell">ฉาก {{ s }}</div>
+          {% for ch in choices %}
+            <!-- ใช้ data-* เพื่อให้ JS เติมค่าและสี -->
+            <div class="cell" data-s="{{ s }}" data-ch="{{ ch }}">0</div>
+          {% endfor %}
+        {% endfor %}
+      </div>
+      <div class="sub" style="margin-top:8px">สีเข้ม = ถูกเลือกบ่อย</div>
+    </div>
+
+    <div class="card">
+      <h2>ตัวเลือกยอดนิยมของแต่ละฉาก</h2>
+      <ul>
+        {% for s, row in heatmap.items %}
+          {% with a=row.A|default:0 b=row.B|default:0 c=row.C|default:0 %}
+            {% if a == 0 and b == 0 and c == 0 %}
+              <li>ฉาก {{ s }} → <span class="pill">ไม่มีข้อมูล</span></li>
+            {% else %}
+              {% if a >= b and a >= c %}
+                <li>ฉาก {{ s }} → <span class="pill">A</span></li>
+              {% elif b >= a and b >= c %}
+                <li>ฉาก {{ s }} → <span class="pill">B</span></li>
+              {% else %}
+                <li>ฉาก {{ s }} → <span class="pill">C</span></li>
+              {% endif %}
+            {% endif %}
+          {% endwith %}
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- ความตาย & สภาพจิตใจ -->
+  <div class="grid" style="margin-top:16px">
+    <div class="card">
+      <h2>การตายตามฉาก (ยอดนิยม)</h2>
+      <canvas id="deathByStage"></canvas>
+      <div class="sub" style="margin-top:8px">
+        รวมการตายทั้งหมด: <b>{{ death_total }}</b>
+        {% if top_death_stage %} | ฉากที่ตายบ่อยสุด: <b>ฉาก {{ top_death_stage }}</b>{% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>สาเหตุการตาย (ยอดนิยม)</h2>
+      <canvas id="deathReasons"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>การกระจายสถานะจิตใจ</h2>
+      <canvas id="sanityPie"></canvas>
+    </div>
+  </div>
+
+  <!-- ไอเท็ม & การเอาชีวิตรอด -->
+  <div class="grid" style="margin-top:16px">
+    <div class="card">
+      <h2>อัตราการถือครองไอเท็ม (โพชั่น)</h2>
+      <div class="kpi">{{ holding_rate }}%</div>
+      <div class="sub">คิดจากผู้เล่นทั้งหมด</div>
+    </div>
+    <div class="card">
+      <h2>จำนวนผู้เล่นที่จบเกม แยกตามการถือโพชั่น</h2>
+      <canvas id="survivalItems"></canvas>
+    </div>
+  </div>
+
+  <!-- ผู้เล่นล่าสุด -->
+  <div class="card" style="margin-top:16px">
+    <h2>ผู้เล่นล่าสุด</h2>
+    <table>
+      <thead><tr><th>ไอดีผู้เล่น</th><th>จำนวนรอบ</th><th>สถานะล่าสุด</th><th>เริ่มเล่นล่าสุด</th></tr></thead>
+      <tbody>
+      {% for p in recent_players %}
+        <tr>
+          <td>{{ p.player_id }}</td>
+          <td>{{ p.rounds }}</td>
+          <td>{{ p.last_status }}</td>
+          <td>{{ p.last_started }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">ยังไม่มีข้อมูล</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // ---------- ข้อมูลจาก Django ----------
+    const dailyLabels = {{ daily_labels|safe }};
+    const dailyEntVals = {{ daily_ent_vals|safe }};
+    const dailyFinVals = {{ daily_fin_vals|safe }};
+
+    const stageLabels = {{ stage_labels|safe }};
+    const stageCounts = {{ stage_counts|safe }};
+
+    const timeStageLabels = {{ time_stage_labels|safe }};
+    const timeStageAvgSec = {{ time_stage_avg_sec|safe }};
+
+    const deathByStage = {{ death_by_stage|safe }};   // [{stage_index, c}]
+    const deathReasons = {{ death_reasons|safe }};     // [{attrs__reason, c}]
+    const sanityLabels = {{ sanity_labels|safe }};
+    const sanityCounts = {{ sanity_counts|safe }};
+
+    const survHelp = {{ surv_help|safe }};             // {with_potion, without_potion}
+    const heatmap = {{ heatmap|safe }};                // {stage: {A:n, B:n, C:n}}
+    const choices = {{ choices|safe }};
+
+    // ---------- ตัวช่วย ----------
+    const $ = (sel) => document.querySelector(sel);
+
+    // ระบายสี/เติมค่าฮีตแมพ
+    (function paintHeat(){
+      const cells = document.querySelectorAll('.heatgrid .cell[data-s]');
+      let maxV = 0;
+      Object.values(heatmap).forEach(row => { Object.values(row).forEach(v => { if (v > maxV) maxV = v; }); });
+      cells.forEach(el=>{
+        const s = el.getAttribute('data-s');
+        const ch = el.getAttribute('data-ch');
+        const v = (heatmap[s] && heatmap[s][ch]) ? heatmap[s][ch] : 0;
+        el.textContent = v;
+        if (maxV > 0){
+          const t = v / maxV; // 0..1
+          const r = Math.round(60 + 120*t);
+          const g = Math.round(120 + 30*t);
+          const b = Math.round(200 + 30*t);
+          el.style.background = `rgba(${r},${g},${b},0.15)`;
+          el.style.borderColor = `rgba(${r},${g},${b},0.35)`;
+        }
+      });
+    })();
+
+    // ---------- กราฟ ----------
+    new Chart($('#dailyLine'), {
+      type:'line',
+      data:{
+        labels: dailyLabels,
+        datasets:[
+          {label:'เริ่มเล่น (คน)', data: dailyEntVals},
+          {label:'จบเกม (คน)', data: dailyFinVals}
+        ]
+      },
+      options:{responsive:true, scales:{y:{beginAtZero:true}}}
+    });
+
+    new Chart($('#eventsPerStage'), {
+      type:'bar',
+      data:{ labels: stageLabels, datasets:[{label:'จำนวนเซสชันที่กำลังเล่น', data: stageCounts}] },
+      options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+    });
+
+    new Chart($('#timePerStage'), {
+      type:'bar',
+      data:{ labels: timeStageLabels, datasets:[{label:'เวลาเฉลี่ย (วินาที)', data: timeStageAvgSec}] },
+      options:{responsive:true, scales:{y:{beginAtZero:true}}}
+    });
+
+    new Chart($('#deathByStage'), {
+      type:'bar',
+      data:{
+        labels: deathByStage.map(x=>`ฉาก ${x.stage_index}`),
+        datasets:[{label:'จำนวนการตาย', data: deathByStage.map(x=>x.c)}]
+      },
+      options:{responsive:true, scales:{y:{beginAtZero:true}}}
+    });
+
+    new Chart($('#deathReasons'), {
+      type:'pie',
+      data:{
+        labels: deathReasons.map(x=>x["attrs__reason"] ?? "ไม่ระบุ"),
+        datasets:[{ data: deathReasons.map(x=>x.c) }]
+      },
+      options:{responsive:true}
+    });
+
+    new Chart($('#sanityPie'), {
+      type:'doughnut',
+      data:{ labels: sanityLabels, datasets:[{ data: sanityCounts }] },
+      options:{responsive:true}
+    });
+
+    new Chart($('#survivalItems'), {
+      type:'bar',
+      data:{
+        labels:['มีโพชั่น','ไม่มีโพชั่น'],
+        datasets:[{ label:'จำนวนผู้เล่นที่จบเกม', data:[survHelp.with_potion, survHelp.without_potion] }]
+      },
+      options:{responsive:true, scales:{y:{beginAtZero:true}}}
+    });
+  </script>
+</body>
+</html>

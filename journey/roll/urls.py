@@ -1,7 +1,8 @@
 from django.urls import path,include
 from roll import views
+from .views import native_dashboard
 
-urlpatterns = [
+urlpatterns = [ 
     path("api/session/start", views.start_session, name="start_session"),
     path("api/session/<uuid:session_id>/state", views.get_state, name="get_state"),
     path("api/session/<uuid:session_id>/act", views.act, name="act"),
@@ -13,5 +14,6 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('game/', views.game_view, name='game'),
     path("api/session/<uuid:session_id>/intro", views.intro, name="intro"),
+    path("dashboard/", native_dashboard, name="native_dashboard"),
 ]
 

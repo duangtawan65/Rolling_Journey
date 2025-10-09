@@ -23,6 +23,214 @@ from django.contrib.auth.models import User
 from roll.ai import resolve_effects
 from roll.rules import classify_turn
 # ---------- helpers ----------
+# roll/views.py
+# journey/roll/views.py
+from collections import defaultdict
+from django.db.models import Count, Avg, Max, Min, F, Q
+from django.db.models.functions import TruncDate
+from django.shortcuts import render
+
+from .models import Player, Session, EventLog
+try:
+    # เผื่อโปรเจ็กต์คุณมี enums
+    from .enums import SessionStatus
+    ACTIVE = getattr(SessionStatus, "ACTIVE", "ACTIVE")
+    FINISHED = getattr(SessionStatus, "FINISHED", "FINISHED")
+except Exception:
+    # กันไว้ถ้าไม่มี enums
+    ACTIVE = "ACTIVE"
+    FINISHED = "FINISHED"
+
+CHOICES = ["A", "B", "C"]
+STAGES = list(range(1, 11))
+SANITY_MAP = {
+    "stable": "มั่นคง",
+    "paranoid": "หวาดระแวง",
+    "breakdown": "ใกล้เสียสติ",
+}
+
+def native_dashboard(request):
+    # ---------- 🧍 ผู้เล่น ----------
+    # ถ้ามี log session_start ก็ใช้เป็นตัวนับ entrant; ถ้ายังไม่ยิง log ใช้จำนวน Player กันไว้
+    total_entrants = (
+        EventLog.objects.filter(type="session_start").values("player_id").distinct().count()
+        or Player.objects.count()
+    )
+
+    finishers = (
+        Session.objects.filter(status=FINISHED)
+        .values("player_id").distinct().count()
+    )
+    completion_rate = round((finishers / total_entrants) * 100, 1) if total_entrants else 0.0
+
+    recent_players = (
+        Session.objects
+        .values("player_id")
+        .annotate(
+            last_started=Max("started_at"),
+            rounds=Count("id"),
+            last_status=Max("status"),
+        )
+        .order_by("-last_started")[:10]
+    )
+
+    # ---------- 🗺️ ความคืบหน้า ----------
+    # แจกแจง stage ปัจจุบัน (จะเลือก ACTIVE ตามชื่อหมวดในหน้า)
+    current_stage_dist = (
+        Session.objects.filter(status=ACTIVE)
+        .values("stage_index")
+        .annotate(c=Count("id"))
+        .order_by("stage_index")
+    )
+    stage_labels = [f"S{s['stage_index']}" for s in current_stage_dist]
+    stage_counts = [s["c"] for s in current_stage_dist]
+
+    # Heatmap ทางเลือก (A/B/C) ต่อฉาก จาก EventLog.type='choice' + attrs.choice
+    choice_qs = (
+        EventLog.objects
+        .filter(type="choice", attrs__has_key="choice")
+        .values("stage_index", "attrs__choice")
+        .annotate(c=Count("id"))
+    )
+    heatmap = {s: {ch: 0 for ch in CHOICES} for s in STAGES}
+    for row in choice_qs:
+        stage = int(row["stage_index"])
+        ch = row["attrs__choice"]
+        if stage in heatmap and ch in heatmap[stage]:
+            heatmap[stage][ch] = row["c"]
+
+    top_choice_by_stage = {
+        s: (max(heatmap[s].items(), key=lambda kv: kv[1])[0] if sum(heatmap[s].values()) else "-")
+        for s in STAGES
+    }
+
+    # ---------- 💀 สถิติความตาย ----------
+    deaths = EventLog.objects.filter(type="death")
+    death_total = deaths.count()
+    death_by_stage = list(
+        deaths.values("stage_index").annotate(c=Count("id")).order_by("-c")[:10]
+    )
+    top_death_stage = death_by_stage[0]["stage_index"] if death_by_stage else None
+
+    death_reasons = list(
+        deaths.values("attrs__reason").annotate(c=Count("id")).order_by("-c")[:8]
+    )
+
+    # ---------- 🎭 สถานะจิตใจ ----------
+    sanity_qs = EventLog.objects.filter(type="sanity", attrs__has_key="sanity")
+    sanity_dist = sanity_qs.values("attrs__sanity").annotate(c=Count("id")).order_by("-c")
+    sanity_labels = [SANITY_MAP.get(x["attrs__sanity"], x["attrs__sanity"]) for x in sanity_dist]
+    sanity_counts = [x["c"] for x in sanity_dist]
+
+    # ---------- 🎒 ไอเท็ม ----------
+    holders_any_item = Player.objects.filter(Q(pot_heal__gt=0) | Q(pot_boost__gt=0)).count()
+    players_total = max(Player.objects.count(), 1)
+    holding_rate = round((holders_any_item / players_total) * 100, 1)
+
+    # ไอเท็มช่วยรอดชีวิต (proxy: จำนวน finishers ที่ผู้เล่นมีโพชั่นอย่างน้อย 1)
+    finishers_with_pot = (
+        Session.objects.filter(status=FINISHED, player__pot_heal__gt=0)
+        | Session.objects.filter(status=FINISHED, player__pot_boost__gt=0)
+    ).values("player_id").distinct().count()
+    surv_help = {
+        "with_potion": finishers_with_pot,
+        "without_potion": max(finishers - finishers_with_pot, 0),
+    }
+
+    # ---------- ⏱️ เวลาเล่น ----------
+    # (แก้แบบไม่ซ้อน Aggregate) ดึง min/max ต่อ (session, stage) แล้วคำนวณเฉลี่ยใน Python
+    span_qs = (
+        EventLog.objects
+        .values("session_id", "stage_index")
+        .annotate(tmin=Min("ts"), tmax=Max("ts"))
+    )
+    stage_seconds = defaultdict(list)
+    for r in span_qs:
+        tmin, tmax = r["tmin"], r["tmax"]
+        if tmin and tmax and tmax > tmin:
+            secs = (tmax - tmin).total_seconds()
+            stage_seconds[r["stage_index"]].append(secs)
+
+    time_stage_labels, time_stage_avg_sec = [], []
+    for s in sorted(stage_seconds.keys()):
+        vals = stage_seconds[s]
+        avg_sec = sum(vals) / len(vals) if vals else 0
+        time_stage_labels.append(f"S{s}")
+        time_stage_avg_sec.append(round(avg_sec, 1))
+
+    # เวลาเฉลี่ยก่อนตาย: session_start -> death ที่เร็วสุดของ session
+    starts = (
+        EventLog.objects.filter(type="session_start")
+        .values("session_id").annotate(t0=Min("ts"))
+    )
+    t0_map = {str(x["session_id"]): x["t0"] for x in starts}
+    to_death = []
+    for d in deaths.values("session_id").annotate(td=Min("ts")):
+        s_id = str(d["session_id"])
+        if s_id in t0_map:
+            to_death.append((d["td"] - t0_map[s_id]).total_seconds())
+    avg_time_to_death = round(sum(to_death) / len(to_death), 1) if to_death else 0.0
+
+    # ---------- รายวัน: entrants vs finishers ----------
+    daily_ent = (
+        EventLog.objects.filter(type="session_start")
+        .annotate(day=TruncDate("ts")).values("day").annotate(c=Count("id")).order_by("day")
+    )
+    daily_fin = (
+        Session.objects.filter(status=FINISHED, ended_at__isnull=False)
+        .annotate(day=TruncDate("ended_at")).values("day").annotate(c=Count("id")).order_by("day")
+    )
+    # รวมวันทั้งหมดเพื่อทำแกน x เดียว
+    all_days = sorted({str(x["day"]) for x in daily_ent} | {str(x["day"]) for x in daily_fin})
+    ent_map = {str(x["day"]): x["c"] for x in daily_ent}
+    fin_map = {str(x["day"]): x["c"] for x in daily_fin}
+    daily_labels = all_days
+    daily_ent_vals = [ent_map.get(d, 0) for d in all_days]
+    daily_fin_vals = [fin_map.get(d, 0) for d in all_days]
+
+    context = {
+        # KPI
+        "total_entrants": total_entrants,
+        "finishers": finishers,
+        "completion_rate": completion_rate,
+        "avg_time_to_death": avg_time_to_death,
+
+        # ผู้เล่นล่าสุด
+        "recent_players": list(recent_players),
+
+        # ความคืบหน้า + heatmap
+        "stage_labels": stage_labels,
+        "stage_counts": stage_counts,
+        "heatmap": heatmap,
+        "choices": CHOICES,
+
+        # ความตาย
+        "death_total": death_total,
+        "top_death_stage": top_death_stage,
+        "death_by_stage": death_by_stage,
+        "death_reasons": death_reasons,
+
+        # สถานะจิตใจ
+        "sanity_labels": sanity_labels,
+        "sanity_counts": sanity_counts,
+
+        # ไอเท็ม
+        "holding_rate": holding_rate,
+        "surv_help": surv_help,
+
+        # เวลาเล่น
+        "time_stage_labels": time_stage_labels,
+        "time_stage_avg_sec": time_stage_avg_sec,
+
+        # รายวัน
+        "daily_labels": daily_labels,
+        "daily_ent_vals": daily_ent_vals,
+        "daily_fin_vals": daily_fin_vals,
+    }
+    return render(request, "roll/native_dashboard.html", context)
+
+
+########################################################################################
 
 def _redirect_safe(request, to: str, default: str = "/"):
     """ป้องกัน open redirect vulnerability"""

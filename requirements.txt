@@ -3,7 +3,7 @@ anyio
 asgiref            
 certifi            
 charset-normalizer 
-clickhouse-driver  
+# clickhouse-driver  
 distro             
 Django            
 groq              
@@ -25,4 +25,7 @@ typing_extensions
 typing-inspection  
 tzdata            
 tzlocal            
-urllib3            
+urllib3      
+clickhouse-connect
+python-dotenv
+psycopg2-binary

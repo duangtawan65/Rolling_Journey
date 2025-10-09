@@ -11,9 +11,21 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
+CLICKHOUSE = {
+    "HOST": os.getenv("CH_HOST", "localhost"),
+    "PORT": int(os.getenv("CH_PORT", "8123")),
+    "USER": os.getenv("CH_USER", "default"),
+    "PASSWORD": os.getenv("CH_PASSWORD", ""),
+    "DATABASE": os.getenv("CH_DATABASE", "default"),
+}
 
 
 # Quick-start development settings - unsuitable for production
@@ -38,6 +50,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "roll",
+    # "roll.apps.RollConfig",
 ]
 
 MIDDLEWARE = [
@@ -67,6 +80,8 @@ TEMPLATES = [
     },
 ]
 
+
+
 WSGI_APPLICATION = "journey.wsgi.application"
 
 
@@ -74,16 +89,16 @@ WSGI_APPLICATION = "journey.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'journey_db',
-        'USER': 'postgres',
-        'PASSWORD': '190546',
-        'HOST': 'localhost',
-        'PORT': '5432',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("DB_NAME", "journey_db"),
+        "USER": os.getenv("DB_USER", "postgres"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "1234"),
+        "HOST": os.getenv("DB_HOST", "127.0.0.1"),  # บังคับ IPv4
+        "PORT": os.getenv("DB_PORT", "5432"),
+        # "OPTIONS": {"sslmode": "disable"},  # ปกติไม่ต้อง แต่ใส่ได้
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
