@@ -10,24 +10,8 @@ services:
       CLICKHOUSE_PASSWORD: 1234
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     volumes:
-      - ch_data:/var/lib/clickhouse              # << ใช้ named volume
+      - ch_data:/var/lib/clickhouse
       - ./clickhouse/init_eventlog.sql:/docker-entrypoint-initdb.d/init_eventlog.sql:ro
-
-  ssuperset:
-    image: apache/superset:latest
-    container_name: superset
-    ports:
-      - "8088:8088"
-    depends_on:
-      - clickhouse
-    environment:
-      # สร้างคีย์ยาวๆ สุ่มๆ แทนค่านี้ได้เลย (ดูวิธีสร้างด้านล่าง)
-      SUPERSET_SECRET_KEY: "TVg7suQpADdq2r2H9-hAARnezu_ob4q7-6TyktDywtFHc2z-yRYnpsOtazymX2bVjeO0yI0d-4luPiANbdBYBA"
-      # (ออปชัน) ปิดการเก็บตัวอย่างเริ่มต้น
-      # SUPERSET_LOAD_EXAMPLES: "no"
-    volumes:
-      - superset_home:/app/superset_home   # เก็บ DB/คอนฟิกของ Superset ให้ถาวร
 
 volumes:
   ch_data: {}
-  superset_home: {}

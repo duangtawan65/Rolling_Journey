@@ -313,9 +313,18 @@ def register_view(request):
                 "error": "ชื่อผู้ใช้นี้ถูกใช้งานแล้ว"
             })
         
-        # สร้าง user ใหม่แล้ว redirect กลับไป login
-        User.objects.create_user(username=username, password=password)
-        return redirect("/login/")  # ไม่ login อัตโนมัติ ให้กลับไป login เอง
+        # --- FIX IS HERE ---
+        # 1. Create the new user
+        new_user = User.objects.create_user(username=username, password=password)
+        
+        # 2. Immediately create the associated Player with a unique anon_id
+        Player.objects.create(
+            user=new_user,
+            anon_id=str(uuid4()) # Generate a unique ID
+        )
+        # -------------------
+
+        return redirect("/login/")
     
     return render(request, "register.html", {})
 
@@ -336,18 +345,25 @@ def game_view(request):
 
 def _get_or_create_player(request) -> Player:
     """
-    นโยบายอย่างง่าย:
-    - ถ้าล็อกอิน: ผูกกับ user
-    - ถ้าไม่ล็อกอิน: ใช้ header 'X-ANON-ID' ถ้ามี; ถ้าไม่มีให้สร้าง anon_id ใหม่
+    Finds or creates a player.
+    - For logged-in users, it's linked to their user account.
+    - For anonymous users, it uses the 'X-ANON-ID' header or creates a new one.
     """
     if request.user and request.user.is_authenticated:
-        player, _ = Player.objects.get_or_create(user=request.user)
+        # --- THIS IS THE FIX ---
+        # When creating a player for a logged-in user for the first time,
+        # also create a unique anon_id for them.
+        player, _ = Player.objects.get_or_create(
+            user=request.user,
+            defaults={'anon_id': uuid4().hex}
+        )
         return player
 
+    # This part for anonymous users is already correct
     anon_id = request.headers.get("X-ANON-ID")
     if not anon_id:
         anon_id = uuid4().hex
-        # หมายเหตุ: คุณอาจอยากส่ง anon_id นี้กลับไปที่ client ให้เก็บใช้ในครั้งต่อไป
+    
     player, _ = Player.objects.get_or_create(anon_id=anon_id)
     return player
 
