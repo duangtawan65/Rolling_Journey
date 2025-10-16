@@ -1,31 +1,26 @@
-import os, sys
+import os
+import sys
 from pathlib import Path
-from roll.models import EventLog 
+import django
+import clickhouse_connect
+from roll.models import EventLog
 
-
-# ให้สคริปต์รันได้จากที่ไหนก็ได้
 HERE = Path(__file__).resolve()
-OUTER = HERE.parents[1]     # .../journey (มี manage.py อยู่ชั้นเดียวกัน)
-ROOT  = OUTER.parent        # .../ROLLING_JOURNEY
+OUTER = HERE.parents[1]   # .../journey
+ROOT = OUTER.parent       # .../Rolling_Journey
+
 for p in (str(OUTER), str(ROOT)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "journey.settings")
-
-import django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "journey.journey.settings")
 django.setup()
-
-from roll.models import EventLog
-import clickhouse_connect
-
 
 def sync_event_logs(batch_size: int = 1000):
     client = clickhouse_connect.get_client(
         host="localhost", port=8123, username="default", password="1234"
     )
 
-    # ดึงเฉพาะคอลัมน์ที่ต้องใช้ เพื่อเร็ว/เบา
     qs = EventLog.objects.all().values(
         "ts", "player_id", "session_id", "type", "stage_index", "turn",
         "hp", "mp", "potions", "pot_heal_ct", "pot_boost_ct", "attrs"
@@ -68,7 +63,6 @@ def sync_event_logs(batch_size: int = 1000):
 
     flush()
     print("No event logs to sync." if total == 0 else f"✅ Inserted {total} rows into ClickHouse.")
-
 
 if __name__ == "__main__":
     sync_event_logs()
