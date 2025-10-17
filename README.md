@@ -1,5 +1,31 @@
-# Rolling_Journey
+# ชื่อโครงการ : เสียงร่ำไห้แห่งเวียงหล่ม (The Wailing of Wiang Lom)
 
+#  สมาชิกกลุ่ม 
+- นายดวงตะวัน สิ่งส่า 65114540215 จัดการ backend เชื่อม api  ระบบต่างๆ
+- น.ส.ลัลน์ลลิต สุวรรณศรี 65114540529 ออกแบบ Database Schema,โหลดเข้า Data Warehouse
+- น.ส.อรอนงค์ คำมุงคุณ 65114540697 ออกแบบรูปแบบเกม, ออกแบบ UI, Game Designer, Frontend Developer 
+
+# วัตถุประสงค์ของโครงการ
+- 1. เพื่อพัฒนา ระบบ AI Narrative Game Engine ที่สามารถสร้างเนื้อเรื่องเชิงโต้ตอบโดยอัตโนมัติ
+- 2. เพื่อประยุกต์ใช้เทคโนโลยี Generative AI ในการเล่าเรื่อง ตัดสินเหตุการณ์ และให้ทางเลือกแก่ผู้เล่น
+- 3. เพื่อพัฒนา API และฐานข้อมูล (ClickHouse / PostgreSQL) สำหรับเชื่อมโยงข้อมูลกับโมเดลภาษา (LLM)
+- 4.เพื่อออกแบบสถาปัตยกรรมข้อมูลแบบ Data Warehouse สำหรับเก็บข้อมูลของเกม
+- 5. เพื่อประเมิน ประสิทธิภาพของระบบ ทั้งด้านเทคนิค (response time, data retrieval) และด้านประสบการณ์ผู้ใช้ (ความสมจริงของเนื้อเรื่อง)
+
+# เครื่องมือและเทคโนโลยีที่ใช้
+
+# ฐานข้อมูลและ Data Warehouse
+- ใช้ PostgreSQL เป็นฐานข้อมูลหลักสำหรับเก็บ game state, character stats, inventory และ quest progress แบบ real-time
+- ใช้ ClickHouse สำหรับเก็บและวิเคราะห์ข้อมูลพฤติกรรมผู้เล่น
+
+# Generative AI
+- ใช้ Groq API เรียกใช้งาน openai/gpt-oss-20b  สำหรับสร้างเนื้อหาเกม เช่น quest, dialogue
+
+# Application Framework
+- ใช้ภาษา Python สำหรับพัฒนา backend service และ AI game engine
+- ใช้ไลบรารี clickhouse-connect สำหรับเชื่อมต่อและจัดการข้อมูลระหว่าง PostgreSQL และ ClickHouse
+- ระบบถูกออกแบบให้รองรับการสื่อสารระหว่าง AI Narrative Engine, Data Warehouse, และ Dashboard Visualization
+  
 python -m venv venv  
 cd ROLLING_JOURNEY
 venv\Scripts\Activate
@@ -126,7 +152,3 @@ CLICKHOUSE = {
 cd journey
 python manage.py runserver 
 แล้วเปิดเบราว์เซอร์ไปที่ http://localhost:8000/dashboard/
-
-
-
-
