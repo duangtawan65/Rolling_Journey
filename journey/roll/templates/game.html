@@ -1,23 +1,21 @@
 {% extends "base.html" %}
-<head>
-  {% load static %}
-  <title>{% block title %}เกม{% endblock %}</title>
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'css/game.css' %}">
-  {% block content %}
-</head>
+{% load static %}
 
+{% block title %}เกม{% endblock %}
+
+{% block content %}
 <link rel="stylesheet" href="{% static 'css/game.css' %}">
 
 <div id="background-image-container"></div>
 
+<!-- Start modal -->
 <div id="start-game-modal" class="modal-overlay">
   <div class="modal-box">
     <h1 class="modal-title">เสียงร่ำไห้แห่งเวียงหล่ม</h1>
     <div class="modal-description">
       <p class="modal-subtitle">
-        คุณถูกดึงเข้าไปยัง <strong class="highlight-white">"บ้านเวียงหล่ม"</strong> หมู่บ้านต้องสาปที่ตัดขาดจากโลกภายนอก ในหมู่บ้านที่ชาวบ้านมีกลิ่นอายของวิญญาณร่ำไห้ คุณต้องใช้ไหวพริบและความกล้าในการเอาชีวิตรอด ค้นหาความจริง และหนีออกจากหุบเขานรกแห่งนี้ให้ได้</p>
-      <!-- <p class="modal-subtitle">ใช้ไหวพริบและความกล้าในการเอาชีวิตรอด ค้นหาความจริง และหนีออกจากหุบเขานรกแห่งนี้ให้ได้</p> -->
+        คุณถูกดึงเข้าไปยัง <strong class="highlight-white">"บ้านเวียงหล่ม"</strong> หมู่บ้านต้องสาปที่ตัดขาดจากโลกภายนอก ในหมู่บ้านที่ชาวบ้านมีกลิ่นอายของวิญญาณร่ำไห้ คุณต้องใช้ไหวพริบและความกล้าในการเอาชีวิตรอด ค้นหาความจริง และหนีออกจากหุบเขานรกแห่งนี้ให้ได้
+      </p>
     </div>
     <hr class="modal-hr">
     <p class="modal-prompt">คุณพร้อมที่จะท้าทายความกลัวแล้วหรือยัง?</p>
@@ -25,9 +23,7 @@
   </div>
 </div>
 
-
 <div class="page-wrapper">
-
   <div class="top-bar">
     <h1 class="username"><i class="fa-solid fa-user"></i> ผู้เล่น : {{ user.username }}</h1>
     <form method="post" action="{% url 'logout' %}">
@@ -38,6 +34,7 @@
     </form>
   </div>
 
+  <!-- HUD Left -->
   <div class="hud hud-top-left">
     <div class="resource-bar-item">
       <div class="resource-label">HP</div>
@@ -53,319 +50,345 @@
         <span class="resource-bar-text" id="mp_text">- / -</span>
       </div>
     </div>
-
   </div>
 
   <div class="hud-under hud-top-left-under">
-     <div class="hud-inventory">
-          <div class="inventory-item">
-            <div class="item-icon-container">
-              <img src="{% static 'icons/1.png' %}" alt="Heal Potion" class="item-icon">
-              <span class="item-count" id="potH_count">0</span>
-            </div>
-            <p class="item-label">Heal Potion</p>
-          </div>
-
-          <div class="inventory-item">
-            <div class="item-icon-container">
-              <img src="{% static 'icons/2.png' %}" alt="Boost Charm" class="item-icon">
-              <span class="item-count" id="potB_count">0</span>
-            </div>
-            <p class="item-label">Boost Charm</p>
-          </div>
+    <div class="hud-inventory">
+      <div class="inventory-item">
+        <div class="item-icon-container">
+          <img src="{% static 'icons/1.png' %}" alt="Heal Potion" class="item-icon">
+          <span class="item-count" id="potH_count">0</span>
         </div>
-
-  </div>
-
-    <div class="hud hud-top-right">
-      <div class="char-status-hud">
-        <div class="char-status-item">
-          <div class="label">❤️ สุขภาพ</div>
-          <div id="char_health" class="value">-</div>
-        </div>
-        <div class="char-status-item">
-          <div class="label">🧠 สติ</div>
-          <div id="char_sanity" class="value">-</div>
-        </div>
-        <div class="char-status-item">
-          <div class="label">📈 ความคืบหน้า</div>
-          <div id="char_progress" class="value">-</div>
-        </div>
+        <p class="item-label">Heal Potion</p>
       </div>
 
-        <button id="btnQuit" class="button-quit" type="button">
-          ยอมแพ้/เริ่มใหม่
-        </button>
+      <div class="inventory-item">
+        <div class="item-icon-container">
+          <img src="{% static 'icons/2.png' %}" alt="Boost Charm" class="item-icon">
+          <span class="item-count" id="potB_count">0</span>
+        </div>
+        <p class="item-label">Boost Charm</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- HUD Right -->
+  <div class="hud hud-top-right">
+    <div class="char-status-hud">
+      <div class="char-status-item">
+        <div class="label">📈 ความคืบหน้า</div>
+        <div id="char_progress" class="value">-</div>
+      </div>
+      <!-- optional: parsed from narration -->
+      <!-- <div class="char-status-item">
+        <div class="label">❤️ สุขภาพ(ข้อความ)</div>
+        <div id="char_health" class="value">-</div>
+      </div>
+      <div class="char-status-item">
+        <div class="label">🧠 สติ(ข้อความ)</div>
+        <div id="char_sanity" class="value">-</div>
+      </div> -->
+      <div class="card" id="roll-panel" style="margin-top:12px;">
+      <h3>ผลการทอยลูกเต๋า</h3>
+      <div style="font-size:48px; font-weight:bold; text-align:center; padding:20px; font-family:'Courier New',monospace;" id="diceResult">-</div>
+    </div>
     </div>
 
-    <div class="center-controls">
-      <div id="stage_button" class="button">ด่านที่ </div>
-      <div id="mission-update-box" ></div>
-      <div id="turn_button" class="button">เทิร์นที่ </div>
-    </div>
+    <button id="btnQuit" class="button-quit" type="button">
+      ยอมแพ้/เริ่มใหม่
+    </button>
+  </div>
 
-    <div class="bottom-section">
-      <div id="narration-box"></div>
-      <div id="choices-box"></div>
-    </div>
+  <!-- Center -->
+  <div class="center-controls">
+    <div id="stage_button" class="button">ด่านที่ </div>
+    <div id="mission-update-box"></div>
+    <div id="turn_button" class="button">เทิร์นที่ </div>
+  </div>
 
+  <!-- Bottom -->
+  <div class="bottom-section">
+    <div id="narration-box"></div>
+    <div id="choices-box"></div>
+    
+  </div>
 </div>
 
 <script>
 {% verbatim %}
-  // ---------- Constants & Globals ----------
-  const API = { 
-    start: "/api/session/start", 
-    state: sid => `/api/session/${sid}/state`, 
-    act: sid => `/api/session/${sid}/act`, 
-    end: sid => `/api/session/${sid}/end`, 
-    intro: sid => `/api/session/${sid}/intro`, 
-  };
-  const STORAGE_KEY_SID = 'weingLomSessionID';
-  let SID = null;
+// ---------- API endpoints (match your views) ----------
+const API = { 
+  start: "/api/session/start",
+  state: sid => `/api/session/${sid}/state`,
+  act:   sid => `/api/session/${sid}/act`,
+  end:   sid => `/api/session/${sid}/end`,
+  intro: sid => `/api/session/${sid}/intro`,
+};
 
-  // ---------- Helpers ----------
-  const el = (id) => document.getElementById(id);
-  function escapeHtml(s){ 
-    return (s||"").replace(/[&<>"']/g, c=>({ 
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" 
-    }[c])); 
-  }
-  function anonId() { 
-    let id = localStorage.getItem("anon_id"); 
-    if (!id) { 
-      id = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)); 
-      localStorage.setItem("anon_id", id); 
-    } 
-    return id; 
-  }
-  async function apiPost(url, body) { 
-    const res = await fetch(url, { 
-      method: "POST", 
-      headers: {"Content-Type": "application/json", "X-ANON-ID": anonId()}, 
-      body: body ? JSON.stringify(body) : "{}" 
-    }); 
-    if (!res.ok) throw new Error(await res.text()); 
-    return res.json(); 
-  }
-  async function apiGet(url) { 
-    const res = await fetch(url, { headers: {"X-ANON-ID": anonId()} }); 
-    if (!res.ok) throw new Error(await res.text()); 
-    return res.json(); 
-  }
-  
-  // ---------- Main Initializer ----------
-  document.addEventListener('DOMContentLoaded', () => {
-    localStorage.removeItem(STORAGE_KEY_SID); // ล้าง session เก่า
-    el("start-game-modal").style.display = 'flex';
-    el("btnConfirmStart").addEventListener("click", handleStartButtonClick);
+// ---------- Globals ----------
+const STORAGE_KEY_SID = 'weingLomSessionID';
+let SID = null;
 
-    el("btnQuit").addEventListener("click", quitSession);
-    updateBackground(0); // รูปเริ่มต้น
-  });
+// ---------- Helpers ----------
+const el = (id) => document.getElementById(id);
+function escapeHtml(s){ 
+  return (s||"").replace(/[&<>"']/g, c=>({ 
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" 
+  }[c])); 
+}
+function anonId() { 
+  let id = localStorage.getItem("anon_id"); 
+  if (!id) { 
+    id = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)); 
+    localStorage.setItem("anon_id", id); 
+  } 
+  return id; 
+}
+async function apiPost(url, body) { 
+  const res = await fetch(url, { 
+    method: "POST", 
+    headers: {"Content-Type": "application/json", "X-ANON-ID": anonId()}, 
+    body: body ? JSON.stringify(body) : "{}" 
+  }); 
+  if (!res.ok) throw new Error(await res.text()); 
+  return res.json(); 
+}
+async function apiGet(url) { 
+  const res = await fetch(url, { headers: {"X-ANON-ID": anonId()} }); 
+  if (!res.ok) throw new Error(await res.text()); 
+  return res.json(); 
+}
 
-  function handleStartButtonClick() {
-    const modal = el("start-game-modal");
-    modal.style.opacity = "0";
-    modal.querySelector(".modal-box").style.transform = "scale(0.95)";
-    setTimeout(() => { 
-      modal.style.display = "none"; 
-      startNewSession(); 
-    }, 200);
+// ---------- Startup ----------
+document.addEventListener('DOMContentLoaded', () => {
+  localStorage.removeItem(STORAGE_KEY_SID); // clear old session
+  el("start-game-modal").style.display = 'flex';
+  el("btnConfirmStart").addEventListener("click", handleStartButtonClick);
+  el("btnQuit").addEventListener("click", quitSession);
+  updateBackground(0); // initial bg
+});
+
+function handleStartButtonClick() {
+  const modal = el("start-game-modal");
+  modal.style.opacity = "0";
+  modal.querySelector(".modal-box").style.transform = "scale(0.95)";
+  setTimeout(() => { 
+    modal.style.display = "none"; 
+    startNewSession(); 
+  }, 200);
+}
+
+// ---------- Parsing ----------
+function extractSceneSituationMissionStatus(narration) {
+  let scene = "", situation = "", mission = "", health = "", sanity = "", progress = "";
+  if (narration) {
+    const missionMatch = narration.match(/\*\*\[ภารกิจปัจจุบัน\]:\*\*\s*(.*)/);
+    if (missionMatch) mission = missionMatch[1].trim();
+    const sceneMatch = narration.match(/\*\*\[สถานที่\]:\*\*\s*(.*)/);
+    if (sceneMatch) scene = sceneMatch[1].trim();
+    const situationMatch = narration.match(/\*\*\[สถานการณ์\]:\*\*\s*([\s\S]*?)(?=\*\*\[|\*\*ตัวเลือก|\* [A-Z]\.)/);
+    if (situationMatch) situation = situationMatch[1].trim();
+    const healthMatch = narration.match(/\*\*สุขภาพ:\*\*\s*(.*)/);
+    if (healthMatch) health = healthMatch[1].trim();
+    const sanityMatch = narration.match(/\*\*สติ:\*\*\s*(.*)/);
+    if (sanityMatch) sanity = sanityMatch[1].trim();
+    const progressMatch = narration.match(/\*\*ความคืบหน้าภารกิจ:\*\*\s*\[(.*?)\]/);
+    if (progressMatch) progress = progressMatch[1].trim();
   }
+  return { scene, situation, mission, health, sanity, progress };
+}
 
-  // ---------- Data Parsing ----------
-  function extractSceneSituationMissionStatus(narration) {
-    let scene = "", situation = "", mission = "", health = "", sanity = "", progress = "";
-    if (narration) {
-      const missionMatch = narration.match(/\*\*\[ภารกิจปัจจุบัน\]:\*\*\s*(.*)/);
-      if (missionMatch) mission = missionMatch[1].trim();
-      const sceneMatch = narration.match(/\*\*\[สถานที่\]:\*\*\s*(.*)/);
-      if (sceneMatch) scene = sceneMatch[1].trim();
-      const situationMatch = narration.match(/\*\*\[สถานการณ์\]:\*\*\s*([\s\S]*?)(?=\*\*\[|\*\*ตัวเลือก|\* [A-Z]\.)/);
-      if (situationMatch) situation = situationMatch[1].trim();
-      const healthMatch = narration.match(/\*\*สุขภาพ:\*\*\s*(.*)/);
-      if (healthMatch) health = healthMatch[1].trim();
-      const sanityMatch = narration.match(/\*\*สติ:\*\*\s*(.*)/);
-      if (sanityMatch) sanity = sanityMatch[1].trim();
-      const progressMatch = narration.match(/\*\*ความคืบหน้าภารกิจ:\*\*\s*\[(.*?)\]/);
-      if (progressMatch) progress = progressMatch[1].trim();
-    }
-    return { scene, situation, mission, health, sanity, progress };
-  }
-
-  // ---------- UI Rendering ----------
+// ---------- UI Helpers ----------
 function updateBackground(stageIndex) {
   const bgContainer = el("background-image-container");
-
-  // ถ้าไม่มี stageIndex หรือ stageIndex == 1 → รูปเริ่มต้น
   if (!stageIndex || stageIndex <= 1) {
     bgContainer.style.backgroundImage = 'url("/static/background/1.png")';
     return;
   }
-
-  // ถ้า stageIndex > 1 → ใช้รูปตามด่าน
   const imageUrl = `/static/background/${stageIndex}.png`;
   bgContainer.style.backgroundImage = `url("${imageUrl}")`;
 }
 
+function getTurnIndexFromResponse(data) {
+  // get_state -> "turn"; act -> "turn_index"
+  return (typeof data.turn_index !== "undefined") ? data.turn_index : data.turn;
+}
 
-  function renderState(data) {
-    SID = data.session_id || SID;
-    el("stage_button").textContent = `ด่านที่ ${data.stage_index || '-'}`;
+function showRoll(roll) {
+  const diceEl = el("diceResult");
+  if (!roll || typeof roll.dice_roll === 'undefined') {
+    diceEl.textContent = "-";
+    return;
+  }
+  // Show only dice_roll (1-20)
+  diceEl.textContent = roll.dice_roll;
+}
 
-    el("potH_count").textContent = data.player.pot_heal;
-    el("potB_count").textContent = data.player.pot_boost;
+function renderState(data) {
+  SID = data.session_id || SID;
 
-    const player = data.player || {};
-    const currentHp = player.hp;
-    const maxHp = player.max_hp || 30; 
-    const hpPercentage = (currentHp / maxHp) * 100;
-    el('hp_fill').style.width = `${hpPercentage}%`;
-    el('hp_text').textContent = `${currentHp} / ${maxHp}`;
-    if (hpPercentage < 30) { el('hp_fill').classList.add('low-health'); } 
-    else { el('hp_fill').classList.remove('low-health'); }
+  el("stage_button").textContent = `ด่านที่ ${data.stage_index || '-'}`;
 
-    const currentMp = player.mp;
-    const maxMp = player.max_mp || 10; 
-    const mpPercentage = (currentMp / maxMp) * 100;
-    el('mp_fill').style.width = `${mpPercentage}%`;
-    el('mp_text').textContent = `${currentMp} / ${maxMp}`;
-
-    // อัพเดทรูปพื้นหลังตามด่าน
-    updateBackground(data.stage_index);
+  const turnIndex = getTurnIndexFromResponse(data);
+  if (typeof turnIndex !== "undefined") {
+    el("turn_button").textContent = `เทิร์นที่ ${turnIndex}`;
   }
 
-  function renderNarration(scene, situation) {
-    const box = el("narration-box");
-    box.innerHTML = `
-      <div style="font-size:1.1rem; font-weight: bold; color:#f87171;">${escapeHtml(scene)}</div>
-      <div style="margin-top: 0.5rem;">${escapeHtml(situation)}</div>
-    `;
-    box.scrollTop = 0;
-  }
+  // items
+  el("potH_count").textContent = data.player.pot_heal;
+  el("potB_count").textContent = data.player.pot_boost;
 
-  function renderMissionStatus(mission, clearedMissionMessage) {
-    const box = el("mission-update-box");
-    box.innerHTML = `
-      ${clearedMissionMessage || ""}
-      ${mission ? `<div class="mission-box">ภารกิจ: ${escapeHtml(mission)}</div>` : ""}
-    `;
-  }
+  // HP/MP bars
+  const player = data.player || {};
+  const currentHp = player.hp;
+  const maxHp = player.max_hp || 30;
+  const hpPercentage = (currentHp / maxHp) * 100;
+  el('hp_fill').style.width = `${hpPercentage}%`;
+  el('hp_text').textContent = `${currentHp} / ${maxHp}`;
+  if (hpPercentage < 30) el('hp_fill').classList.add('low-health');
+  else el('hp_fill').classList.remove('low-health');
 
-  function renderChoices(narrationText) {
-    const box = el("choices-box");
-    box.innerHTML = "";
-    const lines = (narrationText || "").split("\n");
-    const choices = lines.filter(s => /^\*\s+[ABC]\.\s+/i.test(s)).map(s => s.replace(/^\*\s+[ABC]\.\s+/i, "").trim());
-    if (choices.length === 0) { return; }
-    choices.forEach((choice, idx) => {
-      const btn = document.createElement("button");
-      btn.className = "choice-button";
-      btn.innerHTML = `<b>${["A", "B", "C"][idx]}:</b> ${escapeHtml(choice)}`;
-      btn.addEventListener("click", () => { 
-        document.querySelectorAll('.choice-button').forEach(b => b.disabled = true); 
-        doAct(choice); 
-      });
-      box.appendChild(btn);
+  const currentMp = player.mp;
+  const maxMp = player.max_mp || 10;
+  const mpPercentage = (currentMp / maxMp) * 100;
+  el('mp_fill').style.width = `${mpPercentage}%`;
+  el('mp_text').textContent = `${currentMp} / ${maxMp}`;
+
+  // bg
+  updateBackground(data.stage_index);
+}
+
+function renderNarration(scene, situation) {
+  const box = el("narration-box");
+  box.innerHTML = `
+    <div style="font-size:1.1rem; font-weight: bold; color:#f87171;">${escapeHtml(scene)}</div>
+    <div style="margin-top: 0.5rem;">${escapeHtml(situation)}</div>
+  `;
+  box.scrollTop = 0;
+}
+
+function renderMissionStatus(mission, clearedMissionMessage) {
+  const box = el("mission-update-box");
+  box.innerHTML = `
+    ${clearedMissionMessage || ""}
+    ${mission ? `<div class="mission-box">ภารกิจ: ${escapeHtml(mission)}</div>` : ""}
+  `;
+}
+
+function renderChoices(narrationText) {
+  const box = el("choices-box");
+  box.innerHTML = "";
+  const lines = (narrationText || "").split("\n");
+  const choices = lines
+    .filter(s => /^\*\s+[ABC]\.\s+/i.test(s))
+    .map(s => s.replace(/^\*\s+[ABC]\.\s+/i, "").trim());
+  if (choices.length === 0) return;
+  choices.forEach((choice, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "choice-button";
+    btn.innerHTML = `<b>${["A", "B", "C"][idx]}:</b> ${escapeHtml(choice)}`;
+    btn.addEventListener("click", () => { 
+      document.querySelectorAll('.choice-button').forEach(b => b.disabled = true); 
+      doAct(choice); 
     });
+    box.appendChild(btn);
+  });
+}
+
+function processTurnResult(turnResult) {
+  const r = turnResult || {};
+  // Show dice roll here (ONLY the dice number)
+  showRoll(r.roll || null);
+
+  const fullNarrationText = r.narration || "";
+  const { scene, situation, mission, health, sanity, progress } =
+    extractSceneSituationMissionStatus(fullNarrationText);
+
+  // optional status parsed from narration
+  // el('char_health').textContent = health || '-';
+  // el('char_sanity').textContent = sanity || '-';
+  el('char_progress').textContent = progress ? `[${progress}]` : '-';
+
+  let clearedMissionMessage = "";
+  if (r.cleared_stage && mission) {
+    clearedMissionMessage = `<div class="mission-cleared-box">🎉 ภารกิจสำเร็จ: ${escapeHtml(mission)} ยินดีด้วย!</div>`;
   }
 
-  function processTurnResult(turnResult) {
-    const r = turnResult || {};
-    const fullNarrationText = r.narration || "";
-    const { scene, situation, mission, health, sanity, progress } = extractSceneSituationMissionStatus(fullNarrationText);
+  renderNarration(scene, situation);
+  renderMissionStatus(mission, clearedMissionMessage);
+  renderChoices(fullNarrationText);
+}
 
-    el('char_health').textContent = health || '-';
-    el('char_sanity').textContent = sanity || '-';
-    el('char_progress').textContent = progress ? `[${progress}]` : '-';
-
-    let clearedMissionMessage = "";
-    if (r.cleared_stage && mission) {
-      clearedMissionMessage = `<div class="mission-cleared-box">🎉 ภารกิจสำเร็จ: ${escapeHtml(mission)} ยินดีด้วย!</div>`;
-    }
-
-    renderNarration(scene, situation);
-    renderMissionStatus(mission, clearedMissionMessage);
-    renderChoices(fullNarrationText);
+// ---------- Flow ----------
+async function startNewSession() {
+  try {
+    el("narration-box").innerHTML = "กำลังสร้างการผจญภัยครั้งใหม่...";
+    const data = await apiPost(API.start);
+    SID = data.session_id;
+    localStorage.setItem(STORAGE_KEY_SID, SID);
+    renderState(data);
+    showRoll(null); // clear panel
+    await loadIntro();
+  } catch (e) {
+    el("narration-box").innerHTML = `เริ่มเกมล้มเหลว: ${escapeHtml(e.message)}`;
   }
+}
 
-  // ---------- Core Game Actions ----------
-  async function startNewSession() {
-    try {
-      el("narration-box").innerHTML = "กำลังสร้างการผจญภัยครั้งใหม่...";
-      const data = await apiPost(API.start);
-      SID = data.session_id;
-      localStorage.setItem(STORAGE_KEY_SID, SID);
-      renderState(data);
-      await loadIntro();
-    } catch (e) {
-      el("narration-box").innerHTML = `เริ่มเกมล้มเหลว: ${escapeHtml(e.message)}`;
+async function continueSession(sessionId) {
+  try {
+    el("narration-box").innerHTML = "กำลังดึงข้อมูลเกมล่าสุด...";
+    const data = await apiGet(API.state(sessionId));
+    if (data.status === 'ENDED' || data.status === 'QUIT') { 
+      throw new Error("เซสชันนี้จบไปแล้ว"); 
     }
+    SID = sessionId;
+    renderState(data);
+    if (data.turn) { processTurnResult(data.turn); } else { await loadIntro(); }
+  } catch (e) {
+    localStorage.removeItem(STORAGE_KEY_SID);
+    alert(`ไม่สามารถโหลดเกมต่อได้ (${e.message}), กรุณาเริ่มเกมใหม่`);
+    location.reload();
   }
+}
 
-  async function continueSession(sessionId) {
-    try {
-      el("narration-box").innerHTML = "กำลังดึงข้อมูลเกมล่าสุด...";
-      const data = await apiGet(API.state(sessionId));
-      if (data.status === 'ENDED' || data.status === 'QUIT') { 
-        throw new Error("เซสชันนี้จบไปแล้ว"); 
-      }
-      SID = sessionId;
-      renderState(data);
-      if (data.turn) { processTurnResult(data.turn); } else { await loadIntro(); }
-    } catch (e) {
-      localStorage.removeItem(STORAGE_KEY_SID);
-      alert(`ไม่สามารถโหลดเกมต่อได้ (${e.message}), กรุณาเริ่มเกมใหม่`);
-      location.reload();
-    }
+async function quitSession() {
+  if (!SID && !localStorage.getItem(STORAGE_KEY_SID)) 
+    return alert("ยังไม่มีเกมให้ยอมแพ้");
+  if (!confirm("คุณต้องการยอมแพ้และเริ่มเกมใหม่ทั้งหมดใช่หรือไม่?")) return;
+  try {
+    if (SID) await apiPost(API.end(SID));
+  } catch (e) { 
+    console.error("Failed to end session on server:", e.message); 
+  } finally {
+    localStorage.removeItem(STORAGE_KEY_SID);
+    location.reload();
   }
+}
 
-  async function quitSession() {
-    if (!SID && !localStorage.getItem(STORAGE_KEY_SID)) 
-      return alert("ยังไม่มีเกมให้ยอมแพ้");
-    if (!confirm("คุณต้องการยอมแพ้และเริ่มเกมใหม่ทั้งหมดใช่หรือไม่?")) return;
-    try {
-      if (SID) await apiPost(API.end(SID));
-    } catch (e) { 
-      console.error("Failed to end session on server:", e.message); 
-    }
-    finally {
-      localStorage.removeItem(STORAGE_KEY_SID);
-      location.reload();
-    }
+async function loadIntro() {
+  try {
+    const res = await apiGet(API.intro(SID));
+    showRoll(null); // intro isn't a real roll
+    if (res.turn_intro) { processTurnResult(res.turn_intro); }
+  } catch(_e) { 
+    el("narration-box").innerHTML = "โหลดเรื่องราวเริ่มต้นล้มเหลว"; 
   }
+}
 
-  async function refreshState() {
-    if (!SID) { 
-      alert("ยังไม่มีเกมให้รีเฟรช กรุณาเริ่มเกมก่อน"); 
-      return; 
-    }
-    await continueSession(SID);
+async function doAct(actionText) {
+  if (!SID) return alert("ยังไม่มี Session—กดเริ่ม/ต่อเกมก่อน");
+  // If you want to test buffs: add use_mp/use_boost here.
+  const body = { action_text: actionText /*, use_mp: 2, use_boost: true */ };
+  try {
+    el("narration-box").innerHTML = `กำลังดำเนินการ: "${escapeHtml(actionText)}"...`;
+    const res = await apiPost(API.act(SID), body);
+    renderState(res);
+    processTurnResult(res.turn);
+  } catch (e) {
+    el("narration-box").innerHTML = `การกระทำล้มเหลว: ${escapeHtml(e.message)}`;
+    document.querySelectorAll('.choice-button').forEach(b => b.disabled = false);
   }
-
-  async function loadIntro() {
-    try {
-      const res = await apiGet(API.intro(SID));
-      if (res.turn_intro) { processTurnResult(res.turn_intro); }
-    } catch(_e) { 
-      el("narration-box").innerHTML = "โหลดเรื่องราวเริ่มต้นล้มเหลว"; 
-    }
-  }
-
-  async function doAct(actionText) {
-    if (!SID) return alert("ยังไม่มี Session—กดเริ่ม/ต่อเกมก่อน");
-    const body = { action_text: actionText };
-    try {
-      el("narration-box").innerHTML = `กำลังดำเนินการ: "${escapeHtml(actionText)}"...`;
-      const res = await apiPost(API.act(SID), body);
-      renderState(res);
-      processTurnResult(res.turn);
-    } catch (e) {
-      el("narration-box").innerHTML = `การกระทำล้มเหลว: ${escapeHtml(e.message)}`;
-      document.querySelectorAll('.choice-button').forEach(b => b.disabled = false);
-    }
-  }
+}
 {% endverbatim %}
 </script>
 {% endblock %}

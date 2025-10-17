@@ -41,14 +41,6 @@ except Exception:
     ACTIVE = "ACTIVE"
     FINISHED = "FINISHED"
 
-CHOICES = ["A", "B", "C"]
-STAGES = list(range(1, 11))
-SANITY_MAP = {
-    "stable": "มั่นคง",
-    "paranoid": "หวาดระแวง",
-    "breakdown": "ใกล้เสียสติ",
-}
-
 def native_dashboard(request):
     # ---------- 🧍 ผู้เล่น ----------
     # ถ้ามี log session_start ก็ใช้เป็นตัวนับ entrant; ถ้ายังไม่ยิง log ใช้จำนวน Player กันไว้
@@ -85,25 +77,6 @@ def native_dashboard(request):
     stage_labels = [f"S{s['stage_index']}" for s in current_stage_dist]
     stage_counts = [s["c"] for s in current_stage_dist]
 
-    # Heatmap ทางเลือก (A/B/C) ต่อฉาก จาก EventLog.type='choice' + attrs.choice
-    choice_qs = (
-        EventLog.objects
-        .filter(type="choice", attrs__has_key="choice")
-        .values("stage_index", "attrs__choice")
-        .annotate(c=Count("id"))
-    )
-    heatmap = {s: {ch: 0 for ch in CHOICES} for s in STAGES}
-    for row in choice_qs:
-        stage = int(row["stage_index"])
-        ch = row["attrs__choice"]
-        if stage in heatmap and ch in heatmap[stage]:
-            heatmap[stage][ch] = row["c"]
-
-    top_choice_by_stage = {
-        s: (max(heatmap[s].items(), key=lambda kv: kv[1])[0] if sum(heatmap[s].values()) else "-")
-        for s in STAGES
-    }
-
     # ---------- 💀 สถิติความตาย ----------
     deaths = EventLog.objects.filter(type="death")
     death_total = deaths.count()
@@ -111,31 +84,6 @@ def native_dashboard(request):
         deaths.values("stage_index").annotate(c=Count("id")).order_by("-c")[:10]
     )
     top_death_stage = death_by_stage[0]["stage_index"] if death_by_stage else None
-
-    death_reasons = list(
-        deaths.values("attrs__reason").annotate(c=Count("id")).order_by("-c")[:8]
-    )
-
-    # ---------- 🎭 สถานะจิตใจ ----------
-    sanity_qs = EventLog.objects.filter(type="sanity", attrs__has_key="sanity")
-    sanity_dist = sanity_qs.values("attrs__sanity").annotate(c=Count("id")).order_by("-c")
-    sanity_labels = [SANITY_MAP.get(x["attrs__sanity"], x["attrs__sanity"]) for x in sanity_dist]
-    sanity_counts = [x["c"] for x in sanity_dist]
-
-    # ---------- 🎒 ไอเท็ม ----------
-    holders_any_item = Player.objects.filter(Q(pot_heal__gt=0) | Q(pot_boost__gt=0)).count()
-    players_total = max(Player.objects.count(), 1)
-    holding_rate = round((holders_any_item / players_total) * 100, 1)
-
-    # ไอเท็มช่วยรอดชีวิต (proxy: จำนวน finishers ที่ผู้เล่นมีโพชั่นอย่างน้อย 1)
-    finishers_with_pot = (
-        Session.objects.filter(status=FINISHED, player__pot_heal__gt=0)
-        | Session.objects.filter(status=FINISHED, player__pot_boost__gt=0)
-    ).values("player_id").distinct().count()
-    surv_help = {
-        "with_potion": finishers_with_pot,
-        "without_potion": max(finishers - finishers_with_pot, 0),
-    }
 
     # ---------- ⏱️ เวลาเล่น ----------
     # (แก้แบบไม่ซ้อน Aggregate) ดึง min/max ต่อ (session, stage) แล้วคำนวณเฉลี่ยใน Python
@@ -198,25 +146,14 @@ def native_dashboard(request):
         # ผู้เล่นล่าสุด
         "recent_players": list(recent_players),
 
-        # ความคืบหน้า + heatmap
+        # ความคืบหน้า
         "stage_labels": stage_labels,
         "stage_counts": stage_counts,
-        "heatmap": heatmap,
-        "choices": CHOICES,
 
         # ความตาย
         "death_total": death_total,
         "top_death_stage": top_death_stage,
         "death_by_stage": death_by_stage,
-        "death_reasons": death_reasons,
-
-        # สถานะจิตใจ
-        "sanity_labels": sanity_labels,
-        "sanity_counts": sanity_counts,
-
-        # ไอเท็ม
-        "holding_rate": holding_rate,
-        "surv_help": surv_help,
 
         # เวลาเล่น
         "time_stage_labels": time_stage_labels,
@@ -228,7 +165,6 @@ def native_dashboard(request):
         "daily_fin_vals": daily_fin_vals,
     }
     return render(request, "roll/native_dashboard.html", context)
-
 
 ########################################################################################
 
