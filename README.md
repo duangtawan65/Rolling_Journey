@@ -1,3 +1,7 @@
+# Video : https://drive.google.com/file/d/1_3W1rvgFFsrKL_9pPe9Dx5pQ5YV4j-OF/view?usp=sharing
+
+# Docs : https://docs.google.com/document/d/1LnPW14iI-Gts1vKGO2KrtyucVXtVZxCeywNEkulv1F4/edit?usp=sharing
+
 # ชื่อโครงการ : เสียงร่ำไห้แห่งเวียงหล่ม (The Wailing of Wiang Lom)
 
 #  สมาชิกกลุ่ม 
